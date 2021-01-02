@@ -1,0 +1,70 @@
+#!/usr/bin/env ruby
+=begin
+# Get code repository
+=end
+
+require 'optparse'
+require 'shellwords'
+
+DEFAULT_URL_BASE = -'https://github.com'
+
+def get_git_config(key)
+  IO.popen(['git', 'config', '--get', key], &:read).chomp.tap do
+    fail "#{key} is not configured" unless $?.success?
+  end
+end
+
+def ghq_root = @ghq_root ||= File.expand_path(get_git_config('ghq.root'))
+def ghq_user = @ghq_user ||= get_git_config('ghq.user')
+
+def execute(cmd, exception: false)
+  puts "+ #{cmd.shelljoin}"
+  system(*cmd, exception: exception)
+end
+
+def background(&block)
+  Process.detach(fork(&block))
+end
+
+def process(uri, verbose: false)
+  if %r{:} !~ uri
+    if %r{/} !~ uri
+      uri = "#{DEFAULT_URL_BASE}/#{ghq_user}/#{uri}"
+    else
+      uri = "#{DEFAULT_URL_BASE}/#{uri}"
+    end
+  end
+
+  if %r{://} =~ uri
+    proto = $`
+    path = $'
+  elsif %r{:/?} =~ uri
+    proto = 'ssh'
+    path = [$`, $'].join(?/)
+  end
+  path = File.join(ghq_root, path.sub(/\.git\z/, ''))
+
+  execute %W[git clone --no-single-branch --depth=1 #{uri} #{path}], exception: true
+
+  background do
+    $stdin.reopen(File::NULL, 'r')
+    unless verbose
+      [$stderr, $stdout].each { _1.reopen(File::NULL, 'w') }
+    end
+
+    execute %W[git -C #{path} submodule update --init --recursive]
+    execute %W[git -C #{path} fetch --unshallow]
+  end
+end
+
+options = {
+  verbose: false,
+}
+
+OptionParser.new do |o|
+  o.on('-v') { options[:verbose] = _1 }
+end.parse!(ARGV)
+
+ARGV.each do |arg|
+  process(arg, **options)
+end
