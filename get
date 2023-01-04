@@ -52,7 +52,7 @@ def process(uri, verbose: false)
   background do
     $stdin.reopen(File::NULL, 'r')
     unless verbose
-      [$stderr, $stdout].each { _1.reopen(File::NULL, 'w') }
+      [$stderr, $stdout].each {|_| _.reopen(File::NULL, 'w') }
     end
 
     execute %W[git -C #{path} submodule update --init --recursive]
@@ -65,7 +65,7 @@ options = {
 }
 
 OptionParser.new do |o|
-  o.on('-v') { options[:verbose] = _1 }
+  o.on('-v') {|_| options[:verbose] = _ }
 end.parse!(ARGV)
 
 ARGV.each do |arg|
