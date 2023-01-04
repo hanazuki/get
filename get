@@ -55,8 +55,9 @@ def process(uri, verbose: false)
       [$stderr, $stdout].each {|_| _.reopen(File::NULL, 'w') }
     end
 
-    execute %W[git -C #{path} submodule update --init --recursive]
+    execute %W[git -C #{path} submodule update --init --recursive --no-single-branch --depth 1]
     execute %W[git -C #{path} fetch --unshallow]
+    execute %W[git -C #{path} submodule foreach --recursive git fetch --unshallow]
   end
 end
 
