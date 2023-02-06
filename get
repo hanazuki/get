@@ -39,10 +39,8 @@ def process(uri, verbose: false)
   end
 
   if %r{://} =~ uri
-    proto = $`
     path = $'
   elsif %r{:/?} =~ uri
-    proto = 'ssh'
     path = [$`, $'].join(?/)
   end
   path = File.join(ghq_root, path.sub(/\.git\z/, ''))
