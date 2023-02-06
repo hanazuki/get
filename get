@@ -43,7 +43,7 @@ def process(uri, verbose: false)
   elsif %r{:/?} =~ uri
     path = [$`, $'].join(?/)
   end
-  path = File.join(ghq_root, path.sub(/\.git\z/, ''))
+  path = File.join(ghq_root, path.sub(/\.git\z/, '').gsub(%r{(?<=/)~}, ''))
 
   execute %W[git clone --no-single-branch --depth=1 #{uri} #{path}], exception: true
 
